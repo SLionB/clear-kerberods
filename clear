@@ -1,0 +1,56 @@
+#!/usr/bin/sh
+
+
+if [ ! -f ./busybox ]; then
+echo Placing busybox at current directory
+curl -s -O https://git.laucyun.com/security/lsd_malware_clean_tool/raw/master/busybox
+chmod +x ./busybox
+fi
+
+# Clear scheduled tasks
+(service crond stop || systemctl stop crond || /etc/init.d/cron  top)|sh
+./busybox rm -f /etc/cron.d/root
+./busybox rm -f /var/spool/cron/root
+./busybox rm -f /var/spool/cron/crontabs/root
+
+# Clear malicious Hook library
+./busybox rm -f /etc/ld.so.preload
+./busybox rm -f /usr/local/lib/libcryptod.so
+if [ -f /etc/ld.so.preload ]; then chattr -i /etc/ld.so.preload; rm -f /etc/ld.so.preload; fi
+if [ -f /usr/local/lib/libcryptod.so ]; then rm -f /usr/local/lib/libcryptod.so; fi
+
+
+# Clean up abnormal processes
+./busybox ps -ef | ./busybox grep -v grep | ./busybox egrep 'kerberods'   | ./busybox awk '{print $1}' | ./busybox xargs kill -9
+./busybox ps -ef | ./busybox grep -v grep | ./busybox egrep 'khugepageds' | ./busybox awk '{print $1}' | ./busybox xargs kill -9
+
+./busybox rm -f /tmp/khugepageds
+./busybox rm -f /usr/sbin/kerberods
+
+# Clean up the boot entry
+systemctl disable netdns
+systemctl disable kerberods
+systemctl stop    netdns
+systemctl stop    kerberods
+chkconfig netdns off
+chkconfig --del netdns
+systemctl stop    netdns
+./busybox rm -f /etc/rc.d/init.d/kerberods
+./busybox rm -f /etc/init.d/netdns
+./busybox rm -f /usr/lib/systemd/system/netdns
+./busybox rm -f /etc/systemd/system/netdns
+./busybox rm -f /usr/lib/systemd/system/kerberods
+./busybox rm -f /etc/systemd/system/kerberods
+
+# Refrsh dynamic link library
+ldconfig
+
+# Clean up the exception process again
+./busybox ps -ef | busybox grep -v grep | ./busybox egrep 'kerberods'   | ./busybox awk '{print $1}' | ./busybox xargs kill -9
+./busybox ps -ef | busybox grep -v grep | ./busybox egrep 'khugepageds' | ./busybox awk '{print $1}' | ./busybox xargs kill -9
+
+systemctl stop crond
+service   crond start
+echo "Rebooting"
+sleep 1
+reboot --force

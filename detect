@@ -1,0 +1,22 @@
+#!/usr/bin/sh
+# Detect kerberods infection
+
+if [ ! -f ./busybox ]; then
+echo Placing busybox at current directory
+curl -s -O https://git.laucyun.com/security/lsd_malware_clean_tool/raw/master/busybox
+chmod +x ./busybox
+fi
+
+
+infected=0
+
+if ( ( ./busybox ps -ef | ./busybox grep -v grep | ./busybox egrep 'kerberods' ) ); then
+infected=1
+fi
+
+if ( ( ./busybox ps -ef | ./busybox grep -v grep | ./busybox egrep 'khugepageds' ) ); then
+infected=1
+fi
+
+
+if [ $infected -eq 1 ]; then echo "Infected"; else echo "All clear"; fi
